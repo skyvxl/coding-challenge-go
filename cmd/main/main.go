@@ -1,13 +1,17 @@
 package main
 
 import (
-	"log"
+	"log/slog"
+	"os"
 
 	"learn/internal/di"
 )
 
 func main() {
-	if err := di.RunApp(); err != nil {
-		log.Fatalf("failed to run app: %v", err)
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	if err := di.RunApp(logger); err != nil {
+		logger.Error("failed to run app", slog.Any("error", err))
+		os.Exit(1)
 	}
 }

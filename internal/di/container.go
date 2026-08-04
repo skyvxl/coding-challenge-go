@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,7 +18,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func RunApp() error {
+func RunApp(logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	cfg, err := newConfig()
@@ -30,10 +30,13 @@ func RunApp() error {
 		return err
 	}
 	defer pool.Close()
-	log.Println("Database connected")
+	logger.Info("Database connected")
 	q := db.New(pool)
 	subscriptionHandler := handler.NewHandler(q)
-	err = runServer(ctx, subscriptionHandler.Routes(), cfg)
+	routes := handler.LoggingMiddleware(logger)(
+		subscriptionHandler.Routes(),
+	)
+	err = runServer(ctx, routes, cfg, logger)
 	if err != nil {
 		return err
 	}
@@ -66,7 +69,7 @@ func newConfig() (*config.Config, error) {
 	return cfg, nil
 }
 
-func runServer(ctx context.Context, h http.Handler, cfg *config.Config) error {
+func runServer(ctx context.Context, h http.Handler, cfg *config.Config, logger *slog.Logger) error {
 	server := &http.Server{
 		Addr:              cfg.ServerAddr,
 		Handler:           h,
@@ -76,7 +79,7 @@ func runServer(ctx context.Context, h http.Handler, cfg *config.Config) error {
 		IdleTimeout:       60 * time.Second,
 	}
 	serverErrors := make(chan error, 1)
-	log.Printf("Server started on %s\n", server.Addr)
+	logger.Info("Server started", slog.String("address", server.Addr))
 	go func() {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serverErrors <- fmt.Errorf("failed to listen and serve: %w", err)
@@ -92,7 +95,7 @@ func runServer(ctx context.Context, h http.Handler, cfg *config.Config) error {
 			_ = server.Close()
 			return fmt.Errorf("could not stop server gracefully: %w", err)
 		}
-		log.Println("Server stopped gracefully")
+		logger.Info("Server stopped gracefully")
 	}
 	return nil
 }
