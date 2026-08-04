@@ -1,0 +1,36 @@
+version: '3'
+
+dotenv:
+  - .env
+
+tasks:
+  default:
+    cmds:
+      - task -a
+
+  migrations:up:
+    env:
+      DATABASE_URL: "{{.DATABASE_URL}}"
+    cmds:
+      - goose postgres -dir database/migrations "$DATABASE_URL" up
+
+  migrations:down:
+    env:
+      DATABASE_URL: "{{.DATABASE_URL}}"
+    cmds:
+      - goose postgres -dir database/migrations "$DATABASE_URL" down
+
+  migrations:status:
+    env:
+      DATABASE_URL: "{{.DATABASE_URL}}"
+    cmds:
+      - goose postgres -dir database/migrations "$DATABASE_URL" status
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run
+
+  fmt:
+    desc: Run gofmt
+    cmds:
+      - gofmt -s -w .
