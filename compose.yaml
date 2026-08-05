@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: subscriptions
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d subscriptions" ]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build: .
+    environment:
+      GOOSE_DRIVER: postgres
+      GOOSE_DBSTRING: "postgresql://postgres:postgres@postgres:5432/subscriptions?sslmode=disable"
+      GOOSE_MIGRATION_DIR: /app/migrations
+    command: [ "goose", "up" ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build: .
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/subscriptions?sslmode=disable"
+      SERVER_ADDR: ":8090"
+    ports:
+      - "8090:8090"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
