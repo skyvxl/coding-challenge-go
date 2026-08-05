@@ -1,8 +1,10 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -13,11 +15,19 @@ type Config struct {
 }
 
 func NewConfig() (*Config, error) {
-	if err := godotenv.Load("./.env"); err != nil {
-		return nil, fmt.Errorf("failed to load .env file: %v", err)
+	err := godotenv.Load()
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("load .env: %w", err)
 	}
-	return &Config{
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		ServerAddr:  os.Getenv("SERVER_ADDR"),
-	}, nil
+	cfg := &Config{
+		DatabaseURL: strings.TrimSpace(os.Getenv("DATABASE_URL")),
+		ServerAddr:  strings.TrimSpace(os.Getenv("SERVER_ADDR")),
+	}
+	if cfg.DatabaseURL == "" {
+		return nil, errors.New("DATABASE_URL is required")
+	}
+	if cfg.ServerAddr == "" {
+		return nil, errors.New("SERVER_ADDR is required")
+	}
+	return cfg, nil
 }
