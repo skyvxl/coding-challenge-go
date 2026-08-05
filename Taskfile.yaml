@@ -34,3 +34,8 @@ tasks:
     desc: Run gofmt
     cmds:
       - gofmt -s -w .
+
+  swag:
+    desc: Generate swagger docs
+    cmds:
+      - swag init -g cmd/main/main.go --parseInternal
