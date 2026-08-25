@@ -5,4 +5,4 @@ explore new tools, and try different approaches to backend development.
 
 ## Projects
 
-- [01 — Subscription Service](./01-subscription-service) — a REST API for managing user subscriptions and calculating their total cost.
+- [01 — Subscription Service](./subscription-service-rest) — a REST API for managing user subscriptions and calculating their total cost.
